@@ -1,0 +1,101 @@
+{
+	"$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+	"name": "openflow",
+	"patterns": [
+		{
+			"include": "#comment"
+		},
+		{
+			"include": "#flows"
+		},
+		{
+			"include": "#groups"
+		},
+		{
+			"include": "#meters"
+		},
+		{
+			"include": "#actions"
+		},
+		{
+			"include": "#conntrack"
+		}
+	],
+	"repository": {
+		"comment": {
+			"patterns": [
+				{
+					"name": "comment.block",
+					"begin": "^OFPST_|^OFPT_|^NXST_",
+					"end" : "$"
+				}
+			]
+		},
+		"flows": {
+			"patterns": [
+				{
+					"name": "markup.bold",
+					"match": "\\b(cookie|duration|table|n_packets|n_bytes|priority|actions)\\b"
+				},
+				{
+					"name" : "keyword.operator",
+					"match" : "(->|\\+|\\-|=)"
+				},
+				{
+					"name": "storage.type",
+					"match": "\\b(in_port|nw_src|nw_dst|ip|ipv6|tcp|udp|tp_dst|tp_src|tcp_dst|tcp_src|eth|icmp|icmp6|tcp6|udp6|sctp|sctp6|arp|rarp|mpls|mplsm|eth_type|packet_type|ip_proto|icmp_code|icmp_type|nw_frag|conj_id|ip_src|ip_dst|tun_id|tun_src|tun_dst|tun_ipv6_src|tun_ipv6_dst|tun_gbp_id|tun_gbp_flags|tun_erspan_ver|tun_erspan_idx|tun_erspan_dir|tun_erspan_hwid|tun_gtpu_flags|tun_gtpu_msgtype|tun_flags|in_port_oxm|skb_priority|pkt_mark|actset_output|ct_state|ct_zone|ct_mark|ct_label|ct_nw_src|ct_nw_dst|ct_ipv6_src|ct_ipv6_dst|ct_nw_proto|ct_tp_src|ct_tp_ds|metadata|eth_dst|eth_src|dl_vlan|dl_vlan_pcp|vlan_vid|vlan_pcp|vlan_tci|mpls_label|mpls_tc|mpls_bos|mpls_ttl|ipv6_src|ipv6_dst|ipv6_label|nw_proto|nw_ttl|ip_frag|nw_tos|ip_dscp|nw_ecn|arp_op|arp_spa|arp_tpa|arp_sha|arp_tha|nsh_flags|nsh_ttl|nsh_mdtype|nsh_np|nsh_spi|nsp|nsh_si|nsi|sctp_dst|sctp_src|icmpv6_type|icmpv6_code|nd_target|nd_sll|nd_tll|nd_reserved|nd_options_type)\\b"
+				},
+				{
+					"name" :"storage.type",
+					"match" : "\\b(reg\\d+|xreg\\d+|xxreg\\d|tun_metadata\\d|nsh_c\\d|nshc\\d)\\b"
+				}
+
+			]
+		},
+		"groups": {
+			"patterns": [
+				{
+					"name": "markup.bold",
+					"match": "\\b(bucket|actions|group_id)\\b"
+				},
+				{
+					"name": "string.jade",
+					"match": "\\b(type|select|selection_method|weight|fields|hash|dp_hash|all|bucket_id)\\b"
+				}
+			]
+		},
+		"meters": {
+			"patterns": [
+				{
+					"name": "markup.bold",
+					"match": "\\b(meter|pktps|stats|burst|kbps|bands)\\b"
+				},
+				{
+					"name": "string.jade",
+					"match": "\\b(type|burst_size|rate)\\b"
+				}
+			]
+		},
+		"actions" : {
+			"patterns": [
+				{
+					"name": "storage.modifier",
+					"match": "\\b(strip_vlan|pop_vlan|pop_mpls|decap|encap|push_mpls|push_vlan|dec_ttl|dec_mpls_ttl|dec_nsh_ttl|load|move|mod_dl_dst|mod_dl_src|mod_nw_dst|mod_nw_src|mod_nw_tos|mod_nw_ecn|mod_nw_ttl|mod_tp_dst|mod_tp_src|mod_vlan_pcp|mod_vlan_vid|set_field|set_tunnel|set_tunnel64|set_queue|pop_queue|group|output|resubmit|ct_clear|ct|normal|flood|all|local|controller|enqueue|drop|bundle|bundle_load|set_mpls_label|set_mpls_tc|set_mpls_ttl|dec_mpls_ttl|dec_nsh_ttl|check_pkt_larger|delete_field|learn|fin_timeout|clone|push|pop|exit|multipath|conjunction|note|sample|meter|clear_actions|write_actions|write_metadata|goto_table)\\b"
+				},
+				{
+					"name": "storage.type",
+					"match": "\\b(NXM_NX_CONJ_ID|OXM_OF_TUNNEL_ID|NXM_NX_TUN_ID|NXM_NX_TUN_IPV4_SRC|NXM_NX_TUN_IPV4_DST|NXM_NX_TUN_IPV6_SRC|NXM_NX_TUN_IPV6_DST|NXM_NX_TUN_GBP_ID|NXM_NX_TUN_GBP_FLAGS|NXOXM_ET_ERSPAN_VER|NXOXM_ET_ERSPAN_IDX|NXOXM_ET_ERSPAN_DIR|NXOXM_ET_ERSPAN_HWID|NXOXM_ET_GTPU_FLAGS|NXOXM_ET_GTPU_MSGTYPE|NXM_NX_TUN_METADATA\\d+|NXM_NX_TUN_FLAGS|NXM_OF_IN_PORT|OFPP_LOCAL|OFPP_NONE|OFPP_CONTROLLER|OFPP_NORMAL|OFPP_FLOOD|OFPP_ALL|OFPP_TABLE|NXM_NX_PKT_MARK|ONFOXM_ET_ACTSET_OUTPUT|OXM_OF_PACKET_TYPE|NXM_NX_CT_STATE|NXM_NX_CT_ZONE|NXM_NX_CT_MARK|NXM_NX_CT_LABEL|NXM_NX_CT_NW_SRC|NXM_NX_CT_NW_DST|NXM_NX_CT_IPV6_SRC|NXM_NX_CT_IPV6_DST|NXM_NX_CT_NW_PROTO|NXM_NX_CT_TP_SRC|NXM_NX_CT_TP_DST|OXM_OF_METADATA|NXM_NX_REG\\d+|OXM_OF_PKT_REG\\d|NXM_NX_XXREG\\d|OXM_OF_ETH_SRC|NXM_OF_ETH_SRC|OXM_OF_ETH_DST|NXM_OF_ETH_DST|OXM_OF_ETH_TYPE|NXM_OF_ETH_TYPE|OXM_OF_VLAN_VID|OXM_OF_VLAN_PCP|NXM_OF_VLAN_TCI|OXM_OF_MPLS_LABEL|OXM_OF_MPLS_TC|OXM_OF_MPLS_BOS|NXM_NX_MPLS_TTL|OXM_OF_IPV4_SRC|NXM_OF_IP_SRC|OXM_OF_IPV4_DST|NXM_OF_IP_DST|OXM_OF_IPV6_SRC|NXM_NX_IPV6_SRC|OXM_OF_IPV6_DST|NXM_NX_IPV6_DST|OXM_OF_IPV6_FLABEL|NXM_NX_IPV6_LABEL|OXM_OF_IP_PROTO|NXM_OF_IP_PROTO|NXM_NX_IP_TTL|NXM_NX_IP_FRAG|NXM_OF_IP_TOS|OXM_OF_IP_DSCP|OXM_OF_IP_ECN|NXM_NX_IP_ECN|OXM_OF_ARP_OP|NXM_OF_ARP_OP|OXM_OF_ARP_SPA|NXM_OF_ARP_SPA|OXM_OF_ARP_TPA|NXM_OF_ARP_TPA|OXM_OF_ARP_SHA|NXM_NX_ARP_SHA|OXM_OF_ARP_THA|NXM_NX_ARP_THA|NXOXM_NSH_FLAGS|NXOXM_NSH_TTL|NXOXM_NSH_MDTYPE|NXOXM_NSH_NP|NXOXM_NSH_SPI|NXOXM_NSH_SI|NXOXM_NSH_C\\d|OXM_OF_TCP_SRC|NXM_OF_TCP_SRC|OXM_OF_TCP_DST|NXM_OF_TCP_DST|ONFOXM_ET_TCP_FLAGS|NXM_NX_TCP_FLAGS|OXM_OF_UDP_SRC|NXM_OF_UDP_SRC|OXM_OF_UDP_DST|NXM_OF_UDP_DST|OXM_OF_SCTP_SRC|OXM_OF_SCTP_DST|OXM_OF_ICMPV4_TYPE|NXM_OF_ICMP_TYPE|OXM_OF_ICMPV4_CODE|NXM_OF_ICMP_CODE|OXM_OF_ICMPV6_TYPE|NXM_NX_ICMPV6_TYPE|OXM_OF_ICMPV6_CODE|NXM_NX_ICMPV6_CODE|OXM_OF_IPV6_ND_TARGET|NXM_NX_ND_TARGET|OXM_OF_IPV6_ND_SLL|NXM_NX_ND_SLL|OXM_OF_IPV6_ND_TLL|NXM_NX_ND_TLL|ERICOXM_OF_ICMPV6_ND_RESERVED|ERICOXM_OF_ICMPV6_ND_OPTIONS_TYPE)\\b"
+				}
+			]
+		},
+		"conntrack": {
+			"patterns": [
+				{
+					"name": "support.class",
+					"match": "\\b(new|est|rel|rpl|inv|trk|snat|dnat|zone|commit)\\b"
+				}
+			]
+		}
+	},
+	"scopeName": "source.ofp"
+}

@@ -1,0 +1,25 @@
+{
+  "name": "openflow",
+  "displayName": "openflow",
+  "description": "openflow rules highlight and visualization",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.78.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "contributes": {
+    "languages": [{
+      "id": "ofp",
+      "aliases": ["openflow", "ofp"],
+      "extensions": [".ofp"],
+      "configuration": "./language-configuration.json"
+    }],
+    "grammars": [{
+      "language": "ofp",
+      "scopeName": "source.ofp",
+      "path": "./syntaxes/ofp.tmLanguage.json"
+    }]
+  }
+}
