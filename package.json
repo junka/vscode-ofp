@@ -3,6 +3,15 @@
   "displayName": "openflow",
   "description": "openflow rules highlight and visualization",
   "version": "0.0.1",
+  "publisher": "junka",
+  "license": "BSD-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/junka/vscode-ofp"
+  },
+  "bugs": {
+    "url": "https://github.com/junka/vscode-ofp/issues"
+  },
   "engines": {
     "vscode": "^1.78.0"
   },
