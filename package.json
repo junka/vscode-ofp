@@ -2,7 +2,7 @@
   "name": "openflow",
   "displayName": "openflow",
   "description": "openflow rules highlight and visualization",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "publisher": "junka",
   "license": "BSD-2-Clause",
   "repository": {
@@ -41,6 +41,9 @@
     ]
   },
   "main": "./out/extension.js",
+  "activationEvents": [
+    "onLanguage:ofp"
+  ],
   "scripts": {
     "compile": "tsc -p ./",
     "lint": "eslint . --ext .ts,.tsx",
@@ -55,9 +58,8 @@
     "eslint-plugin-import": "^2.27.5",
     "eslint-plugin-n": "^15.7.0",
     "eslint-plugin-promise": "^6.1.1",
-    "typescript": "^5.0.4"
-  },
-  "dependencies": {
+    "typescript": "^5.0.4",
+    "vsce": "^2.15.0",
     "vscode": "^1.1.10"
   }
 }
