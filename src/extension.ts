@@ -1,94 +1,81 @@
-'use strict';
+'use strict'
+import * as vscode from 'vscode'
 
-import * as vscode from 'vscode';
-
-
-export function activate(context: vscode.ExtensionContext) {
-
-    context.subscriptions.push(
-        vscode.languages.registerDocumentSymbolProvider(
-            {scheme: "file", language: "ofp"}, 
-            new ofpDocumentSymbolProvider()
-        )
-    );
+export function activate (context: vscode.ExtensionContext) {
+  context.subscriptions.push(
+    vscode.languages.registerDocumentSymbolProvider(
+      { scheme: 'file', language: 'ofp' },
+      new OfpDocumentSymbolProvider()
+    )
+  )
 }
 
-class ofpDocumentSymbolProvider implements vscode.DocumentSymbolProvider {
+class OfpDocumentSymbolProvider implements vscode.DocumentSymbolProvider {
+  public provideDocumentSymbols (
+    document: vscode.TextDocument,
+    token: vscode.CancellationToken): vscode.ProviderResult<vscode.DocumentSymbol[]> {
+    return new Promise((resolve, reject) => {
+      const symbols: vscode.DocumentSymbol[] = []
+      const nodes = [symbols]
+      let lasttid = '-1'
 
-    private format(cmd: string):string {
-        return cmd.substr(1).toLowerCase().replace(/^\w/, c => c.toUpperCase())
-    }
+      const symmarker = vscode.SymbolKind.Field
+      const submarker = vscode.SymbolKind.Event
 
+      for (let i = 0; i < document.lineCount; i++) {
+        const line = document.lineAt(i)
 
-    public provideDocumentSymbols(
-        document: vscode.TextDocument,
-        token: vscode.CancellationToken): vscode.ProviderResult<vscode.DocumentSymbol[]> 
-        {
-        return new Promise((resolve, reject) => 
-        {
-            const symbols: vscode.DocumentSymbol[] = [];
-            const nodes = [symbols]
-            let lasttid = '-1'
+        const tbl = line.text.indexOf('table=')
+        if (tbl !== -1 && line.text.includes('actions=')) {
+          if (lasttid !== line.text.slice(tbl + 6).split(',')[0]) {
+            lasttid = line.text.slice(tbl + 6).split(',')[0]
+            const newsymbol = new vscode.DocumentSymbol(
+              'table ' + lasttid,
+              lasttid,
+              symmarker,
+              line.range, line.range)
 
-            const kind_marker = vscode.SymbolKind.Field
-            const kind_run = vscode.SymbolKind.Event
-            const kind_cmd = vscode.SymbolKind.Function
+            nodes[nodes.length - 1].push(newsymbol)
+          }
+        } else if (line.text.includes('meter=')) {
+          const mid = line.text.slice(line.text.indexOf('meter=') + 6).split(' ')[0]
+          const newsymbol = new vscode.DocumentSymbol(
+            'meter ' + mid,
+            mid,
+            symmarker,
+            line.range, line.range)
 
-            for (let i = 0; i < document.lineCount; i++) {
-                const line = document.lineAt(i);
-
-                let tbl = line.text.indexOf("table=");
-                if (tbl != -1 && line.text.indexOf("actions=") != -1) {
-                    if (lasttid != line.text.slice(tbl+6).split(",")[0]) {
-                        lasttid = line.text.slice(tbl+6).split(",")[0];
-                        const marker_symbol = new vscode.DocumentSymbol(
-                            "table " + lasttid,
-                            lasttid,
-                            kind_marker,
-                            line.range, line.range)
-
-                        nodes[nodes.length-1].push(marker_symbol)
-                    }
-                } else if (line.text.indexOf("meter=") != -1) {
-                    let mid = line.text.slice(line.text.indexOf("meter=")+6).split(" ")[0]
-                    const marker_symbol = new vscode.DocumentSymbol(
-                            "meter " + mid,
-                            mid,
-                            kind_marker,
-                            line.range, line.range)
-
-                    nodes[nodes.length-1].push(marker_symbol)
-                    let idx = 0
-                    while (idx < line.text.length) {
-                        let pos = line.text.indexOf("type=", idx)
-                        if (pos === -1) {
-                            break
-                        }
-                        let t = line.text.slice(pos+5).split(" ")[0]
-                        const sub_symbol = new vscode.DocumentSymbol(
-                                "type " + t,
-                                t,
-                                kind_run,
-                                line.range, line.range)
-                        marker_symbol.children.push(sub_symbol)
-                        idx = pos + 1
-                    }
-                    nodes.push(marker_symbol.children)
-                    nodes.pop()
-
-                } else if (line.text.indexOf("group_id=") != -1) {
-                    var gid = line.text.slice(line.text.indexOf("group_id=")+9).split(",")[0]
-                    const marker_symbol = new vscode.DocumentSymbol(
-                            "group " + gid,
-                            gid,
-                            kind_marker,
-                            line.range, line.range)
-
-                    nodes[nodes.length-1].push(marker_symbol)
-                }
+          nodes[nodes.length - 1].push(newsymbol)
+          let idx = 0
+          while (idx < line.text.length) {
+            const pos = line.text.indexOf('type=', idx)
+            if (pos === -1) {
+              break
             }
+            const t = line.text.slice(pos + 5).split(' ')[0]
+            const subsymbol = new vscode.DocumentSymbol(
+              'type ' + t,
+              t,
+              submarker,
+              line.range, line.range)
+            newsymbol.children.push(subsymbol)
+            idx = pos + 1
+          }
+          nodes.push(newsymbol.children)
+          nodes.pop()
+        } else if (line.text.includes('group_id=')) {
+          const gid = line.text.slice(line.text.indexOf('group_id=') + 9).split(',')[0]
+          const newsymbol = new vscode.DocumentSymbol(
+            'group ' + gid,
+            gid,
+            symmarker,
+            line.range, line.range)
 
-            resolve(symbols);
-        });
-    }
+          nodes[nodes.length - 1].push(newsymbol)
+        }
+      }
+
+      resolve(symbols)
+    })
+  }
 }
