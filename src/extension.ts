@@ -8,6 +8,12 @@ export function activate (context: vscode.ExtensionContext) {
       new OfpDocumentSymbolProvider()
     )
   )
+  context.subscriptions.push(
+    vscode.languages.registerDefinitionProvider(
+      { scheme: 'file', language: 'ofp' },
+      new OfpDefinitionProvider()
+    )
+  )
 }
 
 class OfpDocumentSymbolProvider implements vscode.DocumentSymbolProvider {
@@ -86,5 +92,50 @@ class OfpDocumentSymbolProvider implements vscode.DocumentSymbolProvider {
 
       resolve(symbols)
     })
+  }
+}
+
+class OfpDefinitionProvider implements vscode.DefinitionProvider {
+  public provideDefinition (document: vscode.TextDocument, position: vscode.Position,
+    token: vscode.CancellationToken): vscode.ProviderResult<vscode.Definition | vscode.LocationLink[]> {
+    const pos = document.getWordRangeAtPosition(position)
+    if (pos === undefined) {
+      return []
+    }
+    if (pos.start.character < 9) {
+      return []
+    }
+    const preend = pos.start.translate(0, -1)
+    let prestart = pos.start.translate(0, -9)
+
+    if (document.getText(new vscode.Range(prestart, preend)) !== 'resubmit') {
+      prestart = pos.start.translate(0, -11)
+      if (document.getText(new vscode.Range(prestart, preend)) !== 'goto_table') {
+        return []
+      }
+    }
+
+    let targetpos = pos.start
+    const context = document.getText(pos).split(/\r\n,?/)[0]
+    for (let i = 0; i < document.lineCount; i++) {
+      const line = document.lineAt(i)
+      const tbl = line.text.indexOf('table=' + context)
+      if (tbl !== -1 && line.text.includes('actions=')) {
+        targetpos = new vscode.Position(i, tbl + 6)
+        break
+      }
+    }
+
+    const origionposstart = new vscode.Position(pos.start.line, pos.start.character)
+    const origionposend = new vscode.Position(pos.end.line, pos.end.character)
+    const origionpos = new vscode.Range(origionposstart, origionposend)
+
+    const target = new vscode.Range(targetpos, targetpos)
+    const shortcut: vscode.LocationLink = {
+      originSelectionRange: origionpos,
+      targetUri: document.uri,
+      targetRange: target
+    }
+    return [shortcut]
   }
 }
