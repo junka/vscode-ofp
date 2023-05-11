@@ -2,7 +2,7 @@
   "name": "openflow",
   "displayName": "openflow",
   "description": "openflow rules highlight and visualization",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "publisher": "junka",
   "license": "BSD-2-Clause",
   "repository": {
