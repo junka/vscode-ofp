@@ -48,13 +48,17 @@ class OfpDocumentSymbolProvider implements vscode.DocumentSymbolProvider {
           nodes[nodes.length - 1].push(newsymbol)
           let idx = 0
           while (idx < line.text.length) {
-            const pos = line.text.indexOf('type=', idx)
+            let pos = line.text.indexOf('type=', idx)
             if (pos === -1) {
               break
             }
             const t = line.text.slice(pos + 5).split(' ')[0]
+            pos = line.text.indexOf('rate=', idx)
+            const rt = line.text.slice(pos + 5).split(' ')[0]
+            pos = line.text.indexOf('burst_size=', idx)
+            const bs = line.text.slice(pos + 11).split(' ')[0]
             const subsymbol = new vscode.DocumentSymbol(
-              'type ' + t,
+              'type ' + t + ' rate ' + rt + ' busrt ' + bs,
               t,
               submarker,
               line.range, line.range)
@@ -65,9 +69,14 @@ class OfpDocumentSymbolProvider implements vscode.DocumentSymbolProvider {
           nodes.pop()
         } else if (line.text.includes('group_id=')) {
           const gid = line.text.slice(line.text.indexOf('group_id=') + 9).split(',')[0]
+          const pos = line.text.indexOf('type=')
+          if (pos === -1) {
+            break
+          }
+          const tp = line.text.slice(pos + 5).split(',')[0]
           const newsymbol = new vscode.DocumentSymbol(
             'group ' + gid,
-            gid,
+            tp,
             symmarker,
             line.range, line.range)
 

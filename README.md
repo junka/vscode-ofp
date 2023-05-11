@@ -16,6 +16,6 @@ This aims to work as a helper to analyze the flows dumped out from the environme
 
 #### Feature
 - sytax highlight
-- todo: table outline
+- flow table outline
 - todo: hint for possible conflict
 - todo: hint for better ocherster of flows
