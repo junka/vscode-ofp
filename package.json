@@ -2,7 +2,7 @@
   "name": "openflow",
   "displayName": "openflow",
   "description": "openflow rules highlight and visualization",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "publisher": "junka",
   "license": "BSD-2-Clause",
   "repository": {
@@ -38,11 +38,38 @@
         "scopeName": "source.ofp",
         "path": "./syntaxes/ofp.tmLanguage.json"
       }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "when": "resourceLangId == ofp",
+          "command": "ofp.drawtable",
+          "group": "navigation"
+        }
+      ]
+    },
+    "views": {
+      "explorer": [
+        {
+          "type": "webview",
+          "id": "ofp.tableView",
+          "name": "Table Diagram"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "ofp.drawtable",
+        "title": "Table Diagram",
+        "category": "Webview",
+        "icon": "$(open-preview)"
+      }
     ]
   },
   "main": "./out/extension.js",
   "activationEvents": [
-    "onLanguage:ofp"
+    "onLanguage:ofp",
+    "onWebviewPanel:flowtablechart"
   ],
   "scripts": {
     "compile": "tsc -p ./",
@@ -52,6 +79,7 @@
     "publish": "vsce publish"
   },
   "devDependencies": {
+    "@types/vscode": "^1.78.0",
     "@typescript-eslint/eslint-plugin": "^5.59.5",
     "eslint": "^8.40.0",
     "eslint-config-standard-with-typescript": "^34.0.1",
@@ -61,7 +89,6 @@
     "eslint-plugin-promise": "^6.1.1",
     "eslint-plugin-standard": "^5.0.0",
     "typescript": "^5.0.4",
-    "vsce": "^2.15.0",
-    "vscode": "^1.1.10"
+    "vsce": "^2.15.0"
   }
 }

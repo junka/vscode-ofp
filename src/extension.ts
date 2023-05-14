@@ -1,7 +1,7 @@
 'use strict'
 import * as vscode from 'vscode'
 
-export function activate (context: vscode.ExtensionContext) {
+export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.languages.registerDocumentSymbolProvider(
       { scheme: 'file', language: 'ofp' },
@@ -14,10 +14,192 @@ export function activate (context: vscode.ExtensionContext) {
       new OfpDefinitionProvider()
     )
   )
+
+  // context.subscriptions.push(
+  //   vscode.workspace.onDidChangeConfiguration(e => {
+  //     if (e.affectsConfiguration('ofp-flowchart') || e.affectsConfiguration('workbench.colorTheme')) {
+  //       vscode.commands.executeCommand('ofp.drawtable')
+  //     }
+  //   })
+  // )
+
+  const preprovider = new PreiviewProvider()
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('ofp.drawtable', () => {
+      const panel = preprovider.createWebviewPanel(context.extensionUri)
+      if (panel !== null) {
+        panel.onDidDispose(
+          () => {
+            // Handle user closing panel before the 5sec have passed
+          },
+          null,
+          context.subscriptions
+        )
+      }
+    })
+  )
+
+  // vscode.window.registerWebviewPanelSerializer('flowtablechart', {
+  //   async deserializeWebviewPanel (webviewPanel: vscode.WebviewPanel, state: unknown) {
+  //     webviewPanel.webview.options = {
+  //       enableScripts: true,
+  //       localResourceRoots: [
+  //         vscode.Uri.joinPath(context.extensionUri, 'mermaid')
+  //       ]
+  //     }
+  //     const mjs = webviewPanel.webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, 'mermaid', 'mermaid.min.js'))
+  //     const source = ''
+  //     webviewPanel.webview.html = buildHtml(mjs, source)
+  //   }
+  // })
+
+  vscode.workspace.onDidChangeTextDocument((e) => {
+    const ori = preprovider._ori
+    if (e.document.uri === ori) {
+      const newuri = vscode.Uri.parse('ofp.preview:' + ori.path)
+      preprovider.onDidChangeEmitter.fire(newuri)
+    }
+  })
+
+  context.subscriptions.push(
+    vscode.workspace.registerTextDocumentContentProvider('ofp.preview', preprovider)
+  )
+}
+
+class PreiviewProvider implements vscode.TextDocumentContentProvider {
+  private webViewPanel: vscode.WebviewPanel | null = null
+  public onDidChangeEmitter = new vscode.EventEmitter<vscode.Uri>()
+  private _path = vscode.Uri.parse('')
+  // private readonly debug = vscode.window.createOutputChannel('flowtable')
+  public _ori: vscode.Uri | undefined = undefined
+
+  onDidChange = this.onDidChangeEmitter.event
+
+  public createWebviewPanel(extensionUri: vscode.Uri) {
+    const column = vscode.window.activeTextEditor?.viewColumn
+    if (column === undefined) {
+      return null
+    }
+    this._ori = vscode.window.activeTextEditor?.document.uri
+    if (this._ori === undefined) {
+      return null
+    }
+
+    const newuri = vscode.Uri.parse('ofp.preview:' + this._ori.path)
+    const panel = vscode.window.createWebviewPanel(
+      'flowtablechart',
+      'Flow Tables (' + this._ori.path + ')',
+      vscode.ViewColumn.Beside,
+      {
+        enableScripts: true,
+        localResourceRoots: [
+          vscode.Uri.joinPath(extensionUri, 'mermaid')
+        ]
+      }
+    )
+    this.webViewPanel = panel
+    vscode.workspace.openTextDocument(newuri).then(doc => {
+      panel.title = 'Flow Tables(' + doc.fileName + ')'
+    }, () => { })
+    this._path = extensionUri
+    this.update()
+    return this.webViewPanel
+  }
+
+  public provideTextDocumentContent(uri: vscode.Uri, token: vscode.CancellationToken): vscode.ProviderResult<string> {
+    if (this.webViewPanel?.webview != null) {
+      this.update()
+      return this.webViewPanel.webview.html
+    } else {
+      return ''
+    }
+  }
+
+  public update() {
+    let source = ''
+    if (this._ori !== undefined) {
+      vscode.workspace.openTextDocument(this._ori).then(doc => {
+        source = buildSourceFromDocument(doc)
+        if (this.webViewPanel !== null) {
+          const mjs = this.webViewPanel.webview.asWebviewUri(vscode.Uri.joinPath(this._path, 'mermaid', 'mermaid.esm.min.mjs'))
+          this.webViewPanel.webview.html = buildHtml(mjs, source)
+        }
+      }, () => { })
+    }
+  }
+
+  public dispose() {
+    this.webViewPanel?.dispose()
+    this.webViewPanel = null
+  }
+}
+
+function buildHtml(mjs: vscode.Uri, source: string): string {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none';
+    img-src data: blob: vscode-webview-resource: https:;
+    script-src 'unsafe-inline' vscode-webview-resource: https:;
+    style-src 'unsafe-inline' vscode-webview-resource: https:;"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Flow Tables</title>
+  <style>
+      div.mermaid {
+        font-family: 'Courier New', Courier, monospace !important;
+      }
+  </style>
+  <script type=module>
+      import mermaid from "${mjs}"
+      mermaid.initialize({
+        startOnLoad: true,
+        theme: 'forest',
+        securityLevel: 'loose',
+        flowchart: { curve: 'basis' },
+      })
+  </script>
+</head>
+<body>
+    <h1>Flow Table</h1>
+    <hr/>
+    <div class="mermaid">${source}</div>
+</body>
+</html>`
+}
+
+function buildSourceFromDocument(document: vscode.TextDocument) {
+  let source = 'flowchart TD\n'
+  let lasttid = '-1'
+  for (let i = 0; i < document.lineCount; i++) {
+    const line = document.lineAt(i)
+    const tbl = line.text.indexOf('table=')
+    if (tbl !== -1 && (line.text.includes('resubmit') || line.text.includes('goto_table'))) {
+      if (lasttid !== line.text.slice(tbl + 6).split(',')[0]) {
+        lasttid = line.text.slice(tbl + 6).split(',')[0]
+        let id = 'EndofFlow'
+        if (line.text.includes('goto_table:')) {
+          const start = line.text.indexOf('goto_table:') + 11
+          id = line.text.slice(start).split(/\r\n,?/)[0]
+        } else if (line.text.includes('resubmit')) {
+          const match = line.text.match('resubmit(.*,(.*))')
+          if (match && match.groups) {
+            id = match[1]
+          }
+        }
+        if (id !== 'EndofFlow') {
+          source += lasttid + '-->' + id + '\n'
+        }
+      }
+    }
+  }
+  source += '\n'
+  return source
 }
 
 class OfpDocumentSymbolProvider implements vscode.DocumentSymbolProvider {
-  public provideDocumentSymbols (
+  public provideDocumentSymbols(
     document: vscode.TextDocument,
     token: vscode.CancellationToken): vscode.ProviderResult<vscode.DocumentSymbol[]> {
     return new Promise((resolve, reject) => {
@@ -96,7 +278,7 @@ class OfpDocumentSymbolProvider implements vscode.DocumentSymbolProvider {
 }
 
 class OfpDefinitionProvider implements vscode.DefinitionProvider {
-  public provideDefinition (document: vscode.TextDocument, position: vscode.Position,
+  public provideDefinition(document: vscode.TextDocument, position: vscode.Position,
     token: vscode.CancellationToken): vscode.ProviderResult<vscode.Definition | vscode.LocationLink[]> {
     const pos = document.getWordRangeAtPosition(position)
     if (pos === undefined) {
@@ -105,12 +287,13 @@ class OfpDefinitionProvider implements vscode.DefinitionProvider {
     if (pos.start.character < 9) {
       return []
     }
-    const preend = pos.start.translate(0, -1)
-    let prestart = pos.start.translate(0, -9)
+    let preend = pos.start.translate(0, -1)
+    let prestart = pos.start.translate(0, -11)
 
-    if (document.getText(new vscode.Range(prestart, preend)) !== 'resubmit') {
-      prestart = pos.start.translate(0, -11)
-      if (document.getText(new vscode.Range(prestart, preend)) !== 'goto_table') {
+    if (document.getText(new vscode.Range(prestart, preend)) !== 'goto_table') {
+      preend = pos.start.translate(0, -2)
+      prestart = pos.start.translate(0, -15)
+      if (document.getText(new vscode.Range(prestart, preend)).includes('resubmit')) {
         return []
       }
     }
