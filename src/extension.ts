@@ -1,7 +1,7 @@
 'use strict'
 import * as vscode from 'vscode'
 
-export function activate(context: vscode.ExtensionContext) {
+export function activate (context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.languages.registerDocumentSymbolProvider(
       { scheme: 'file', language: 'ofp' },
@@ -76,7 +76,7 @@ class PreiviewProvider implements vscode.TextDocumentContentProvider {
 
   onDidChange = this.onDidChangeEmitter.event
 
-  public createWebviewPanel(extensionUri: vscode.Uri) {
+  public createWebviewPanel (extensionUri: vscode.Uri) {
     const column = vscode.window.activeTextEditor?.viewColumn
     if (column === undefined) {
       return null
@@ -107,7 +107,7 @@ class PreiviewProvider implements vscode.TextDocumentContentProvider {
     return this.webViewPanel
   }
 
-  public provideTextDocumentContent(uri: vscode.Uri, token: vscode.CancellationToken): vscode.ProviderResult<string> {
+  public provideTextDocumentContent (uri: vscode.Uri, token: vscode.CancellationToken): vscode.ProviderResult<string> {
     if (this.webViewPanel?.webview != null) {
       this.update()
       return this.webViewPanel.webview.html
@@ -116,11 +116,11 @@ class PreiviewProvider implements vscode.TextDocumentContentProvider {
     }
   }
 
-  public update() {
+  public update () {
     let source = ''
     if (this._ori !== undefined) {
       vscode.workspace.openTextDocument(this._ori).then(doc => {
-        source = buildSourceFromDocument(doc)
+        source = this.buildSourceFromDocument(doc)
         if (this.webViewPanel !== null) {
           const mjs = this.webViewPanel.webview.asWebviewUri(vscode.Uri.joinPath(this._path, 'mermaid', 'mermaid.esm.min.mjs'))
           this.webViewPanel.webview.html = buildHtml(mjs, source)
@@ -129,13 +129,49 @@ class PreiviewProvider implements vscode.TextDocumentContentProvider {
     }
   }
 
-  public dispose() {
+  private buildSourceFromDocument (document: vscode.TextDocument) {
+    let source = 'flowchart TD\n'
+    let lasttid = '-1'
+    for (let i = 0; i < document.lineCount; i++) {
+      const line = document.lineAt(i)
+      const tbl = line.text.indexOf(' table=')
+      if (tbl !== -1 && (line.text.includes('resubmit') || line.text.includes('goto_table') ||
+        line.text.includes('ct('))) {
+        if (lasttid !== line.text.slice(tbl + 7).split(',')[0]) {
+          lasttid = line.text.slice(tbl + 7).split(',')[0]
+          let id = 'EndofFlow'
+          if (line.text.includes('goto_table:')) {
+            const start = line.text.indexOf('goto_table:') + 11
+            id = line.text.slice(start).split(/\r\n,?/)[0]
+          } else if (line.text.includes('resubmit')) {
+            const match = line.text.match(/resubmit\(.*,(.*)\)/)
+            if (match !== null) {
+              id = match[1]
+            }
+          } else if (line.text.includes('ct(')) {
+            const match = line.text.match(/ct\([,\w]*table=([\w\d]+)/)
+            if (match !== null) {
+              id = 'CT((CT))'
+              source += 'CT -.-> ' + match[1] + '\n'
+            }
+          }
+          if (id !== 'EndofFlow') {
+            source += lasttid + '-->' + id + '\n'
+          }
+        }
+      }
+    }
+    source += '\n'
+    return source
+  }
+
+  public dispose () {
     this.webViewPanel?.dispose()
     this.webViewPanel = null
   }
 }
 
-function buildHtml(mjs: vscode.Uri, source: string): string {
+function buildHtml (mjs: vscode.Uri, source: string): string {
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -169,37 +205,8 @@ function buildHtml(mjs: vscode.Uri, source: string): string {
 </html>`
 }
 
-function buildSourceFromDocument(document: vscode.TextDocument) {
-  let source = 'flowchart TD\n'
-  let lasttid = '-1'
-  for (let i = 0; i < document.lineCount; i++) {
-    const line = document.lineAt(i)
-    const tbl = line.text.indexOf('table=')
-    if (tbl !== -1 && (line.text.includes('resubmit') || line.text.includes('goto_table'))) {
-      if (lasttid !== line.text.slice(tbl + 6).split(',')[0]) {
-        lasttid = line.text.slice(tbl + 6).split(',')[0]
-        let id = 'EndofFlow'
-        if (line.text.includes('goto_table:')) {
-          const start = line.text.indexOf('goto_table:') + 11
-          id = line.text.slice(start).split(/\r\n,?/)[0]
-        } else if (line.text.includes('resubmit')) {
-          const match = line.text.match('resubmit(.*,(.*))')
-          if (match && match.groups) {
-            id = match[1]
-          }
-        }
-        if (id !== 'EndofFlow') {
-          source += lasttid + '-->' + id + '\n'
-        }
-      }
-    }
-  }
-  source += '\n'
-  return source
-}
-
 class OfpDocumentSymbolProvider implements vscode.DocumentSymbolProvider {
-  public provideDocumentSymbols(
+  public provideDocumentSymbols (
     document: vscode.TextDocument,
     token: vscode.CancellationToken): vscode.ProviderResult<vscode.DocumentSymbol[]> {
     return new Promise((resolve, reject) => {
@@ -213,10 +220,10 @@ class OfpDocumentSymbolProvider implements vscode.DocumentSymbolProvider {
       for (let i = 0; i < document.lineCount; i++) {
         const line = document.lineAt(i)
 
-        const tbl = line.text.indexOf('table=')
+        const tbl = line.text.indexOf(' table=')
         if (tbl !== -1 && line.text.includes('actions=')) {
-          if (lasttid !== line.text.slice(tbl + 6).split(',')[0]) {
-            lasttid = line.text.slice(tbl + 6).split(',')[0]
+          if (lasttid !== line.text.slice(tbl + 7).split(',')[0]) {
+            lasttid = line.text.slice(tbl + 7).split(',')[0]
             const newsymbol = new vscode.DocumentSymbol(
               'table ' + lasttid,
               lasttid,
@@ -278,7 +285,7 @@ class OfpDocumentSymbolProvider implements vscode.DocumentSymbolProvider {
 }
 
 class OfpDefinitionProvider implements vscode.DefinitionProvider {
-  public provideDefinition(document: vscode.TextDocument, position: vscode.Position,
+  public provideDefinition (document: vscode.TextDocument, position: vscode.Position,
     token: vscode.CancellationToken): vscode.ProviderResult<vscode.Definition | vscode.LocationLink[]> {
     const pos = document.getWordRangeAtPosition(position)
     if (pos === undefined) {
@@ -302,9 +309,9 @@ class OfpDefinitionProvider implements vscode.DefinitionProvider {
     const context = document.getText(pos).split(/\r\n,?/)[0]
     for (let i = 0; i < document.lineCount; i++) {
       const line = document.lineAt(i)
-      const tbl = line.text.indexOf('table=' + context)
+      const tbl = line.text.indexOf(' table=' + context)
       if (tbl !== -1 && line.text.includes('actions=')) {
-        targetpos = new vscode.Position(i, tbl + 6)
+        targetpos = new vscode.Position(i, tbl + 7)
         break
       }
     }
